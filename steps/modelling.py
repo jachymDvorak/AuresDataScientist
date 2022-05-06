@@ -1,84 +1,111 @@
-from sklearn.model_selection import GridSearchCV, KFold, cross_val_score
+from sklearn.model_selection import KFold, cross_val_score
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, BaggingRegressor
+import pickle
+import numpy as np
 
-kfold = KFold(n_splits = 5, random_state = 42, shuffle = True)
+class Model():
+    '''
+    Class to wrap the model and its functions
+    '''
 
-xgbr = XGBRegressor(objective = 'reg:squarederror',
-                         eta = 0.1,
-                         max_depth = 7,
-                         reg_alpha = 0.2,
-                         reg_lambda = 0.2,
-                         subsample = 0.7,
-                         colsample_bylevel = 0.75,
-                         colsample_bytree = 0.75)
-bagging = BaggingRegressor(random_state = 42, n_estimators = 200)
-forest = RandomForestRegressor(random_state = 42, n_estimators = 200)
-gboost = GradientBoostingRegressor(random_state = 42, n_estimators = 200)
+    def __init__(self, dataset = None, trained_model = None):
 
-estimators = [forest, gboost, bagging, xgbr, lgbm]
+        self.dataset = dataset
+        self.trained_model = trained_model
 
-models = {}
+    def select_best_model(self, model_dict):
 
-for estimator in estimators:
-    estimator_name = estimator.__class__.__name__
+        best_estimator = min(model_dict, key=model_dict.get)
 
-    model = estimator.fit(X_train, y_train)
+        print(f'Best estimator {best_estimator.__class__.__name__} with RMSE of {model_dict[best_estimator]}')
 
-    models[estimator_name] = model
+        return best_estimator
 
-    RMSE = round(
-        np.sqrt(-cross_val_score(estimator, X_train, y_train, scoring="neg_mean_squared_error", cv=kfold)).mean(), 5)
-    R2 = round(cross_val_score(estimator, X_train, y_train, scoring="r2", cv=kfold).mean(), 5)
-
-    # print(f'RMSE {estimator_name} for dataset {idx}:', RMSE)
-    # print(f'R2 score {estimator_name} for dataset {idx}:', R2)
-
-    from mlxtend.regressor import StackingCVRegressor
-
-stack_reg = StackingCVRegressor(regressors=(forest, gboost, bagging, lgbm, xgbr), meta_regressor=lgbm,
-                                use_features_in_secondary=True, cv=kfold)
-stack_reg.fit(X_train, y_train);
-
-
-def blender(X):
-    return ((0.35 * stack_reg.predict(X)) +
-            (0.25 * models['XGBRegressor'].predict(X)) +
-            (0.15 * models['BaggingRegressor'].predict(X)) +
-            (0.25 * models['LGBMRegressor'].predict(X)))
-
-
-models['stacker'] = stack_reg
-
-model_dict[idx] = models
-
-pred = blender(X_val)
-blended_score = round(mean_squared_error(pred, y_val, squared=False), 0)
-blended_score_r2 = round(r2_score(pred, y_val), 5)
-
-print(f'MODEL NUMBER {idx}')
-print(
-    f'Train set: {X_train.shape[0]}; {y_train.shape[0]}\nTest set: {X_test.shape[0]}; {y_test.shape[0]}\nValidation set: {X_val.shape[0]}; {y_val.shape[0]}')
-print(f'\nRMSE of the blender is {blended_score}\nr2 is {blended_score_r2}\n\n')
-
-
-class Model:
-
-    def __init__(self, dataset, trained_model = None):
-
-        dataset = dataset
-        trained_model = trained_model
 
     def train(self):
-        pass
 
-    def predict(self):
-        pass
+        kfold = KFold(n_splits=5, random_state=42, shuffle=True)
 
-    def load_from_pickle(self):
-        pass
+        xgbr = XGBRegressor(objective='reg:squarederror',
+                            eta=0.1,
+                            max_depth=7,
+                            reg_alpha=0.2,
+                            reg_lambda=0.2,
+                            subsample=0.7,
+                            colsample_bylevel=0.75,
+                            colsample_bytree=0.75)
+        bagging = BaggingRegressor(random_state=42, n_estimators=200, verbose=0)
+        forest = RandomForestRegressor(random_state=42, n_estimators=200, verbose=0)
+        gboost = GradientBoostingRegressor(random_state=42, n_estimators=200, verbose=0)
+
+        estimators = [xgbr, forest, gboost, bagging]
+
+        models = {}
+
+        X_train = self.dataset.train_X
+        y_train = self.dataset.train_y
+
+        for estimator in estimators:
+
+            estimator_name = estimator.__class__.__name__
+
+            print(f'Training model {estimator_name}')
+
+            model = estimator.fit(X_train, y_train)
+
+            RMSE = round(
+                np.sqrt(
+                    -cross_val_score(model, X_train, y_train, scoring="neg_mean_squared_error", cv=kfold)).mean(),
+                5)
+            R2 = round(cross_val_score(model, X_train, y_train, scoring="r2", cv=kfold).mean(), 5)
+
+            models[model] = RMSE
+
+            print(f'RMSE {estimator_name}:', RMSE)
+            print(f'R2 score {estimator_name}:', R2)
+
+        self.trained_model = self.select_best_model(models)
+
+    def predict_on_dataset(self, data):
+
+        estimator = self.trained_model
+
+        return estimator.predict(data)
+
+    def eval(self):
+
+        pred = self.predict_on_dataset(data=self.dataset.test_X)
+
+        test_mse = round(mean_squared_error(pred, self.dataset.test_y, squared=False), 0)
+        test_r2 = round(r2_score(pred, self.dataset.test_y), 5)
+
+        print(f'Test dataset MSE: {test_mse}')
+        print(f'Test dataset R2: {test_r2}')
+
+    def predict_on_new_data(self, data):
+
+        estimator = self.trained_model
+
+        for i, datapoint in enumerate(data, start = 1):
+            pred = estimator.predict(datapoint.reshape(1, -1))
+            print(f'Prediction for ID {i} is price {int(pred[0])} EUR.')
+
 
     def save_model(self):
-        pass
+
+        path = 'model/best_model.pickle'
+
+        with open(path, 'wb') as f:
+            pickle.dump(self.trained_model, f)
+
+        print(f'Best model saved to {path}')
+
+    def load_model(self, path = 'model/best_model.pickle'):
+
+        with open(path, 'rb') as f:
+            self.trained_model = pickle.load(f)
+
+        print(f'Model {self.trained_model.__class__.__name__} loaded')
