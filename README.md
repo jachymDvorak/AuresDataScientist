@@ -1,4 +1,4 @@
-*I only spent approx 4 hours on the model, so it definitely is not perfect and is just a demo
+*Disclaimer: I only spent approx 4 hours on the task, so it definitely is not perfect and is just a demo*
 
 ## How to use
 
