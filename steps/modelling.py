@@ -3,6 +3,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 from xgboost import XGBRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, BaggingRegressor
 import pickle
+import os
 import numpy as np
 
 class Model():
@@ -113,9 +114,12 @@ class Model():
 
     def save_model(self):
 
-        path = 'model/best_model.pickle'
+        path = './model'
 
-        with open(path, 'wb') as f:
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        with open(os.path.join(path, 'best_model.pickle'), 'wb') as f:
             pickle.dump(self.trained_model, f)
 
         print(f'Best model saved to {path}')
