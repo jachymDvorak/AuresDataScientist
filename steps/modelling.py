@@ -1,6 +1,5 @@
-from sklearn.model_selection import KFold, cross_val_score
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import KFold, cross_val_score, GridSearchCV
+from sklearn.metrics import r2_score, mean_squared_error
 from xgboost import XGBRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, BaggingRegressor
 import pickle
@@ -24,22 +23,38 @@ class Model():
 
         return best_estimator
 
+    def optimize_hyperparameters(self, kfold):
+
+        model_name = self.trained_model.__class__.__name__
+
+        print(f'Optimizing hyperparameters for model {model_name}')
+
+        fit_gs = GridSearchCV(self.trained_model,
+                             {'n_estimators': [100, 200, 400]},
+                             cv=kfold).fit(self.dataset.train_X, self.dataset.train_y)
+
+        model = fit_gs.best_estimator_
+
+        print(f'Best hyperparameters are: {fit_gs.best_params_}')
+
+        return model
 
     def train(self):
 
         kfold = KFold(n_splits=5, random_state=42, shuffle=True)
 
-        xgbr = XGBRegressor(objective='reg:squarederror',
-                            eta=0.1,
-                            max_depth=7,
-                            reg_alpha=0.2,
-                            reg_lambda=0.2,
-                            subsample=0.7,
-                            colsample_bylevel=0.75,
-                            colsample_bytree=0.75)
+        xgbr = XGBRegressor(objective='reg:squarederror')
         bagging = BaggingRegressor(random_state=42, n_estimators=200, verbose=0)
         forest = RandomForestRegressor(random_state=42, n_estimators=200, verbose=0)
         gboost = GradientBoostingRegressor(random_state=42, n_estimators=200, verbose=0)
+
+        # eta = 0.1,
+        # max_depth = 7,
+        # reg_alpha = 0.2,
+        # reg_lambda = 0.2,
+        # subsample = 0.7,
+        # colsample_bylevel = 0.75,
+        # colsample_bytree = 0.75
 
         estimators = [xgbr, forest, gboost, bagging]
 
@@ -68,6 +83,8 @@ class Model():
             print(f'R2 score {estimator_name}:', R2)
 
         self.trained_model = self.select_best_model(models)
+
+        self.trained_model = self.optimize_hyperparameters(kfold)
 
     def predict_on_dataset(self, data):
 

@@ -7,7 +7,7 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser(description='Image processing pipeline')
     parser.add_argument('-p', '--path-to-dataset', help='Path to the dataset', default='./data/cars.csv')
-    parser.add_argument('-d', '--debug-mode', help='Turn on/off debug mode', action='store_false')
+    parser.add_argument('-d', '--debug-mode', help='Turn on/off debug mode', action='store_true')
     arguments = parser.parse_args()
 
     # instantiate dataset with path to dataset
@@ -23,6 +23,7 @@ if __name__ == "__main__":
 
     # generate random test dataset from train sample TODO: Better method
     dataset.generate_random_subsample_for_prediction_test()
+
 
     # instantiate model with dataset
     model = Model(dataset = dataset)
