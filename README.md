@@ -4,17 +4,19 @@
 
 After cloning the repository, install the requirements from `requirements.txt`.
 
-Run `train.py` with optional arguments `-d` for turning on debug mode (only using 1k rows) and `-p` as path to the dataset (default path works out of the box).
+Run `train.py -d` (with optional arguments `-d` for turning on debug mode (only using 1k rows)) and `-p` as path to the dataset (default path works out of the box).
 
 Run `predict.py` with optional argument `-p` as path to the prediction dataset (default path works out of the box, a random sample was generated).
 
 Model is also automatically saved in the `model` folder.
 
-## Results on whole dataset of best model (XGBoost):
+## Results on whole dataset of best model (BaggingRegressor - scikit-learn):
 
-**MSE:**
+**RMSE:** 4015
 
-**R2:**
+**R2:** 0.83
+
+Conclusion: since train/val set has better scores (3829 RMSE & 0.87 R2) the model may overfit a bit. In a real setting, regularization could help.
 
 ## TODO's
 
