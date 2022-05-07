@@ -49,14 +49,6 @@ class Model():
         forest = RandomForestRegressor(random_state=42, n_estimators=200, verbose=0)
         gboost = GradientBoostingRegressor(random_state=42, n_estimators=200, verbose=0)
 
-        # eta = 0.1,
-        # max_depth = 7,
-        # reg_alpha = 0.2,
-        # reg_lambda = 0.2,
-        # subsample = 0.7,
-        # colsample_bylevel = 0.75,
-        # colsample_bytree = 0.75
-
         estimators = [xgbr, forest, gboost, bagging]
 
         models = {}
